@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prediction Result</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Chart container styling */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        /* Debug panel */
+        #debug-info {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4e73df;
+        }
+        
+        /* Probability meter */
+        .probability-meter {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .probability-meter-fill {
+            height: 100%;
+            background: #4e73df;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        /* Symptom badges */
+        .symptom-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: rgba(76, 175, 80, 0.2);
+            color: #2e7d32;
+            border-radius: 20px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+
+    <div class="result-card bg-white p-4 rounded shadow-sm">
+        <div class="text-center mb-4">
+            <h1 class="display-5 fw-bold"><i class="fas fa-clipboard-check me-2"></i> Prediction Results</h1>
+            <p class="text-muted">Analysis based on your selected symptoms</p>
+        </div>
+
+        {% if single %}
+            <!-- Single Symptom View -->
+            <div class="alert alert-primary">
+                <i class="fas fa-info-circle me-2"></i> 
+                Showing results for <strong>{{ diseases|length }}</strong> possible disease(s)
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="diseasePieChart"></canvas>
+            </div>
+            
+            <div class="mt-4">
+                <h4><i class="fas fa-disease me-2"></i> Possible Diseases</h4>
+                <div class="row">
+                    {% for d in diseases %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">{{ loop.index }}. {{ d }}</h5>
+                                    <span class="badge bg-primary">{{ percentages[d] }}</span>
+                                </div>
+                                <div class="probability-meter">
+                                    <div class="probability-meter-fill" data-percent="{{ percentages[d].replace('%', '') }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        {% else %}
+            <!-- Multiple Symptoms View -->
+            {% if show_prediction %}
+                <div class="disease-highlight bg-light p-4 rounded mb-4">
+                    <div class="text-center">
+                        <h3><i class="fas fa-diagnosis me-2"></i> {{ predicted_disease }}</h3>
+                        <div class="match-percentage display-4 text-success">{{ match_percentage }}</div>
+                        <p class="text-muted">{{ match_count }} out of {{ total_symptoms }} symptoms matched</p>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="matchPieChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="matchBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h5><i class="fas fa-check-circle me-2"></i> Symptom Analysis</h5>
+                    <div class="symptom-match-container mt-3">
+                        {% for symptom in selected_symptoms %}
+                            {% if symptom in symptom_matches[predicted_disease] %}
+                                <span class="symptom-badge" style="background: rgba(46, 125, 50, 0.2); color: #2e7d32;">
+                                    <i class="fas fa-check me-1"></i> {{ symptom.title() }} (Matched)
+                                </span>
+                            {% else %}
+                                <span class="symptom-badge" style="background: rgba(239, 83, 80, 0.2); color: #d32f2f;">
+                                    <i class="fas fa-times me-1"></i> {{ symptom.title() }} (Unmatched)
+                                </span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                
+            {% else %}
+                <div class="alert alert-warning">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                        <div>
+                            <h4 class="alert-heading">No Clear Diagnosis</h4>
+                            <p>The selected symptoms don't match any known disease pattern.</p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+        
+        <div class="text-center mt-5">
+            <a href="/" class="btn btn-primary btn-lg px-4">
+                <i class="fas fa-arrow-left me-2"></i> Back to Symptoms
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Chart Data Elements -->
+{% if single %}
+<div id="disease-data" 
+     data-labels='[{% for d in diseases %}"{{ d }}"{% if not loop.last %},{% endif %}{% endfor %}]'
+     data-values='[{% for d in diseases %}{{ percentages[d].replace('%', '') }}{% if not loop.last %},{% endif %}{% endfor %}]'></div>
+{% elif show_prediction %}
+<div id="pie-data" 
+     data-matched="{{ match_count }}"
+     data-total="{{ total_symptoms }}"></div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Debug status updates
+    const updateStatus = (elementId, isValid) => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = isValid ? '✔ Ready' : '✖ Missing';
+            element.classList.toggle('bg-success', isValid);
+            element.classList.toggle('bg-danger', !isValid);
+        }
+    };
+
+    // Check requirements
+    updateStatus('chartjs-status', typeof Chart !== 'undefined');
+    updateStatus('canvas-exists', !!document.getElementById('diseasePieChart'));
+    updateStatus('data-status', !!document.getElementById('disease-data'));
+
+    // Initialize probability meters
+    document.querySelectorAll('.probability-meter-fill').forEach(meter => {
+        meter.style.width = meter.getAttribute('data-percent') + '%';
+    });
+
+    // Initialize pie chart (single symptom view)
+    if (typeof Chart !== 'undefined' && document.getElementById('diseasePieChart')) {
+        const dataEl = document.getElementById('disease-data');
+        if (dataEl) {
+            try {
+                const labels = JSON.parse(dataEl.getAttribute('data-labels'));
+                const values = JSON.parse(dataEl.getAttribute('data-values'));
+                const ctx = document.getElementById('diseasePieChart').getContext('2d');
+                
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                                '#9966FF', '#FF9F40', '#66BB6A', '#EF5350'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                console.log("Pie chart initialized successfully");
+            } catch (e) {
+                console.error("Pie chart error:", e);
+                updateStatus('data-status', false);
+            }
+        }
+    }
+
+    // Initialize charts for multiple symptoms view
+    if (typeof Chart !== 'undefined' && document.getElementById('matchPieChart')) {
+        const dataEl = document.getElementById('pie-data');
+        if (dataEl) {
+            try {
+                const matched = parseInt(dataEl.getAttribute('data-matched'));
+                const total = parseInt(dataEl.getAttribute('data-total'));
+                
+                // Pie Chart
+                new Chart(document.getElementById('matchPieChart').getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Matched', 'Unmatched'],
+                        datasets: [{
+                            data: [matched, total - matched],
+                            backgroundColor: ['#4CAF50', '#E0E0E0'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                
+                // Bar Chart
+                new Chart(document.getElementById('matchBarChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Symptoms'],
+                        datasets: [
+                            {
+                                label: 'Matched',
+                                data: [matched],
+                                backgroundColor: '#4CAF50'
+                            },
+                            {
+                                label: 'Total',
+                                data: [total],
+                                backgroundColor: '#9E9E9E'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                console.log("Multi-symptom charts initialized");
+            } catch (e) {
+                console.error("Multi-symptom chart error:", e);
+            }
+        }
+    }
+});
+</script>
+</body>
+</html>

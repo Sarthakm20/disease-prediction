@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Disease Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #f8f9fc;
+            --accent-color: #2e59d9;
+        }
+        
+        body {
+            background-color: var(--secondary-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            max-width: 1000px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .symptom-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .symptom-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .symptom-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .symptom-checkbox {
+            transform: scale(1.2);
+            margin-right: 10px;
+        }
+        
+        .search-box {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 12px;
+            color: #6c757d;
+        }
+        
+        .search-input {
+            padding-left: 40px;
+            border-radius: 25px;
+            border: 1px solid #ddd;
+        }
+        
+        .btn-predict {
+            background: var(--primary-color);
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            transition: all 0.3s;
+        }
+        
+        .btn-predict:hover {
+            background: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .selected-count {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .symptom-group {
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+    <div class="header text-center">
+        <h1 class="display-5 fw-bold mb-3"><i class="fas fa-heartbeat me-2"></i> Disease Prediction System</h1>
+        <p class="lead">Select your symptoms below to get a potential diagnosis</p>
+    </div>
+
+    <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="symptomSearch" class="form-control search-input" placeholder="Search symptoms...">
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Symptoms <span id="selectedCount" class="selected-count">0</span></h4>
+        <button id="clearSelection" class="btn btn-sm btn-outline-secondary">Clear All</button>
+    </div>
+
+    <form action="/predict" method="post" id="symptomForm">
+        <div class="symptom-card">
+            <div class="row g-3" id="symptomContainer">
+                {% for symptom in symptoms %}
+                    <div class="col-md-4 col-sm-6 symptom-item">
+                        <div class="form-check">
+                            <input class="form-check-input symptom-checkbox" type="checkbox" name="symptoms" 
+                                   value="{{ symptom }}" id="symptom{{ loop.index }}">
+                            <label class="form-check-label" for="symptom{{ loop.index }}">
+                                {{ symptom.title() }}
+                            </label>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-predict btn-lg">
+                <i class="fas fa-diagnosis me-2"></i> Predict Disease
+            </button>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Search functionality
+    document.getElementById('symptomSearch').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const symptoms = document.querySelectorAll('.symptom-item');
+        
+        symptoms.forEach(symptom => {
+            const label = symptom.querySelector('label').textContent.toLowerCase();
+            if (label.includes(searchTerm)) {
+                symptom.style.display = 'block';
+            } else {
+                symptom.style.display = 'none';
+            }
+        });
+    });
+    
+    // Selected count update
+    const checkboxes = document.querySelectorAll('.symptom-checkbox');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.symptom-checkbox:checked').length;
+        selectedCount.textContent = selected;
+    }
+    
+    // Clear selection
+    document.getElementById('clearSelection').addEventListener('click', function(e) {
+        e.preventDefault();
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelectedCount();
+    });
+    
+    // Initial count update
+    updateSelectedCount();
+</script>
+</body>
+</html>

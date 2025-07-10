@@ -1,0 +1,84 @@
+:root {
+    --primary: #4e73df;
+    --secondary: #f8f9fc;
+    --success: #1cc88a;
+    --warning: #f6c23e;
+    --danger: #e74a3b;
+}
+
+body {
+    background-color: var(--secondary);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.result-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 2rem;
+}
+
+.chart-container {
+    position: relative; 
+    height: 400px !important; /* Force height */
+    width: 100%;
+    min-height: 400px;
+    background-color: #f8f9fa; /* Temporary background */
+}
+
+/* Ensure canvas fills container */
+.chart-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.match-percentage {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--success);
+}
+
+.disease-highlight {
+    background: rgba(78, 115, 223, 0.1);
+    border-radius: 10px;
+    padding: 1.5rem;
+    border-left: 4px solid var(--primary);
+}
+
+.probability-meter {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.probability-meter-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.symptom-match-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.symptom-badge {
+    background: rgba(76, 175, 80, 0.2);
+    color: #2e7d32;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        height: 250px;
+    }
+    .match-percentage {
+        font-size: 2rem;
+    }
+}
